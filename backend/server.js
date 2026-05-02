@@ -3,6 +3,8 @@ const app = require("./app");
 const { connectDB } = require("./src/config/db");
 const { connectRedis } = require("./src/config/redis");
 const { verifyEmailConfig } = require("./src/config/email");
+const { startWorker }     = require("./src/queue/workers");
+const { getQueue }        = require("./src/queue/jobQueue");
 
 const PORT = process.env.PORT || 5000;
 
@@ -14,6 +16,8 @@ const startServer = async () => {
   await connectDB();
   await connectRedis();
   await verifyEmailConfig();
+  getQueue();
+  startWorker();
 
   const server = app.listen(PORT, () => {
     console.log(`\n✅ Server: http://localhost:${PORT}`);

@@ -5,6 +5,7 @@ const { connectRedis } = require("./src/config/redis");
 const { verifyEmailConfig } = require("./src/config/email");
 const { startWorker }     = require("./src/queue/workers");
 const { getQueue }        = require("./src/queue/jobQueue");
+const { initScheduleTriggers } = require("./src/services/schedule.service");
 
 const PORT = process.env.PORT || 5000;
 
@@ -18,6 +19,7 @@ const startServer = async () => {
   await verifyEmailConfig();
   getQueue();
   startWorker();
+  await initScheduleTriggers();
 
   const server = app.listen(PORT, () => {
     console.log(`\n✅ Server: http://localhost:${PORT}`);

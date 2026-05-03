@@ -36,10 +36,10 @@ app.use("/api/actions",       require("./src/routes/action.routes"));
 app.use("/api/credentials",   require("./src/routes/credential.routes"));
 app.use("/api/webhooks",      require("./src/routes/webhook.routes"));
 app.use("/api/logs",          require("./src/routes/log.routes"));
-// app.use("/api/templates",     require("./src/routes/template.routes"));
-// app.use("/api/integrations",  require("./src/routes/integration.routes"));
-// app.use("/api/notifications", require("./src/routes/notification.routes"));
-// app.use("/api/settings",      require("./src/routes/settings.routes"));
+app.use("/api/templates",     require("./src/routes/template.routes"));
+app.use("/api/integrations",  require("./src/routes/integration.routes"));
+app.use("/api/notifications", require("./src/routes/notification.routes"));
+app.use("/api/settings",      require("./src/routes/settings.routes"));
 app.use("/api/dashboard",     require("./src/routes/dashboard.routes"));
 
 app.use(notFoundMiddleware);

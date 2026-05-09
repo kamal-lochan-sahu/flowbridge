@@ -1,97 +1,116 @@
-import { useState } from 'react'
+import { useState }   from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
-import { RefreshCw, Trash2, ChevronRight } from 'lucide-react'
+import { useNavigate }  from 'react-router-dom'
+import { RefreshCw, ChevronRight, RotateCcw } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { logService } from '../services/log.service'
-import { KEYS } from '../config/queryKeys'
+import { logService }  from '../services/log.service'
+import { KEYS }        from '../config/queryKeys'
 import { formatDate, formatDuration } from '../utils/formatDate'
-import Loader     from '../components/common/Loader'
-import EmptyState from '../components/common/EmptyState'
-import Button     from '../components/ui/Button'
-import Badge      from '../components/ui/Badge'
-import Card       from '../components/ui/Card'
+import Loader        from '../components/common/Loader'
+import EmptyState    from '../components/common/EmptyState'
+import PageHeader    from '../components/ui/PageHeader'
+import PremiumCard   from '../components/ui/PremiumCard'
+import PremiumButton from '../components/ui/PremiumButton'
+import StatusBadge   from '../components/ui/StatusBadge'
+
+const FILTERS = [
+  { key:'',        label:'All',     color:'#0f172a' },
+  { key:'success', label:'Success', color:'#16a34a' },
+  { key:'failed',  label:'Failed',  color:'#dc2626' },
+  { key:'running', label:'Running', color:'#2563eb' },
+]
 
 export default function Logs() {
   const navigate    = useNavigate()
   const queryClient = useQueryClient()
   const [status, setStatus] = useState('')
-  const [page, setPage]     = useState(1)
+  const [page,   setPage]   = useState(1)
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: KEYS.LOGS({ status, page }),
-    queryFn:  () => logService.getAll({ status, page, limit: 20 }).then(r => r.data),
-    refetchInterval: 10000,
+    queryKey: KEYS.LOGS({status,page}),
+    queryFn:  ()=>logService.getAll({status,page,limit:20}).then(r=>r.data),
+    refetchInterval: 15000,
   })
 
-  const retryMutation = useMutation({
-    mutationFn: (id) => logService.retry(id),
-    onSuccess:  () => { toast.success('Retry queued'); queryClient.invalidateQueries({ queryKey: ['logs'] }) },
+  const retryMut = useMutation({
+    mutationFn: (id)=>logService.retry(id),
+    onSuccess:  ()=>{ toast.success('Retry queued'); queryClient.invalidateQueries({queryKey:['logs']}) },
   })
 
-  const logs = data?.data || []
+  const logs       = data?.data||[]
   const pagination = data?.pagination
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Execution Logs</h1>
-          <p className="text-gray-500 text-sm mt-1">{pagination?.total || 0} total runs</p>
-        </div>
-        <Button variant="secondary" icon={RefreshCw} onClick={() => refetch()}>Refresh</Button>
-      </div>
+    <div>
+      <PageHeader
+        title="Execution Logs"
+        subtitle={`${pagination?.total||0} total executions`}
+        action={<PremiumButton variant="secondary" icon={RefreshCw} onClick={()=>refetch()} size="sm">Refresh</PremiumButton>}
+      />
 
-      {/* Filters */}
-      <div className="flex gap-2">
-        {['','success','failed','running'].map(s => (
-          <button key={s} onClick={() => { setStatus(s); setPage(1) }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${status === s ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'}`}>
-            {s || 'All'}
+      {/* Filter Tabs */}
+      <div style={{ display:'flex', gap:'6px', marginBottom:'20px', background:'white', padding:'5px', borderRadius:'12px', border:'1px solid #f1f5f9', width:'fit-content', boxShadow:'0 1px 3px rgba(0,0,0,0.04)' }}>
+        {FILTERS.map(f=>(
+          <button key={f.key} onClick={()=>{ setStatus(f.key); setPage(1) }} style={{
+            padding:'7px 18px', borderRadius:'8px', fontSize:'13px', fontWeight:'600',
+            border:'none', cursor:'pointer', transition:'all 0.15s',
+            background:status===f.key?f.color:'transparent',
+            color:status===f.key?'white':'#64748b',
+          }}>
+            {f.label}
           </button>
         ))}
       </div>
 
       {isLoading ? <Loader /> : !logs.length ? (
-        <EmptyState icon="📋" title="No logs yet" description="Run a workflow to see execution logs" />
+        <EmptyState icon="📋" title="No logs yet" description="Trigger a workflow to see execution logs appear here" />
       ) : (
         <>
-          <Card>
-            <div className="divide-y divide-gray-100">
-              {logs.map(log => (
-                <div key={log._id} onClick={() => navigate(`/logs/${log._id}`)}
-                  className="flex items-center justify-between p-4 hover:bg-gray-50 cursor-pointer transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-2 h-2 rounded-full ${log.status === 'success' ? 'bg-green-500' : log.status === 'failed' ? 'bg-red-500' : log.status === 'running' ? 'bg-blue-500 animate-pulse' : 'bg-gray-400'}`} />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{log.workflowId?.name || 'Unknown Workflow'}</p>
-                      <p className="text-xs text-gray-400">{log.triggerType} • {formatDate(log.createdAt)}</p>
-                    </div>
+          <PremiumCard>
+            <div style={{ padding:'0 4px' }}>
+              {/* Header */}
+              <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 120px 100px 80px', gap:'16px', padding:'12px 20px', borderBottom:'1px solid #f8fafc' }}>
+                {['Workflow','Trigger','Status','Duration','Time'].map(h=>(
+                  <span key={h} style={{ fontSize:'11px',fontWeight:'700',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.5px' }}>{h}</span>
+                ))}
+              </div>
+
+              {logs.map((log,i)=>(
+                <div key={log._id} onClick={()=>navigate(`/logs/${log._id}`)}
+                  style={{ display:'grid',gridTemplateColumns:'2fr 1fr 120px 100px 80px',gap:'16px',padding:'14px 20px',borderBottom:i<logs.length-1?'1px solid #f8fafc':'none',cursor:'pointer',transition:'background 0.1s',alignItems:'center' }}
+                  onMouseEnter={e=>e.currentTarget.style.background='#f8fafc'}
+                  onMouseLeave={e=>e.currentTarget.style.background='transparent'}
+                >
+                  <div style={{ display:'flex',alignItems:'center',gap:'10px' }}>
+                    <div style={{ width:'6px',height:'6px',borderRadius:'50%',background:log.status==='success'?'#22c55e':log.status==='failed'?'#ef4444':log.status==='running'?'#3b82f6':'#94a3b8',flexShrink:0 }} />
+                    <span style={{ fontSize:'14px',fontWeight:'600',color:'#0f172a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>
+                      {log.workflowId?.name||'Unknown Workflow'}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Badge variant={log.status === 'success' ? 'success' : log.status === 'failed' ? 'danger' : 'info'}>
-                      {log.status}
-                    </Badge>
-                    <span className="text-xs text-gray-400">{formatDuration(log.duration)}</span>
-                    {log.status === 'failed' && (
-                      <Button size="sm" variant="secondary" icon={RefreshCw}
-                        onClick={e => { e.stopPropagation(); retryMutation.mutate(log._id) }}>
-                        Retry
-                      </Button>
+                  <span style={{ fontSize:'13px',color:'#64748b',textTransform:'capitalize' }}>{log.triggerType}</span>
+                  <div style={{ display:'flex',alignItems:'center',gap:'8px' }}>
+                    <StatusBadge status={log.status} />
+                    {log.status==='failed' && (
+                      <button onClick={e=>{e.stopPropagation();retryMut.mutate(log._id)}} style={{ background:'none',border:'none',cursor:'pointer',color:'#3b82f6',padding:'2px' }}>
+                        <RotateCcw size={14}/>
+                      </button>
                     )}
-                    <ChevronRight size={16} className="text-gray-400" />
+                  </div>
+                  <span style={{ fontSize:'13px',color:'#64748b' }}>{formatDuration(log.duration)}</span>
+                  <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between' }}>
+                    <span style={{ fontSize:'12px',color:'#94a3b8' }}>{formatDate(log.createdAt)?.split(',')[1]?.trim()}</span>
+                    <ChevronRight size={14} color="#cbd5e1" />
                   </div>
                 </div>
               ))}
             </div>
-          </Card>
+          </PremiumCard>
 
-          {/* Pagination */}
-          {pagination && pagination.pages > 1 && (
-            <div className="flex justify-center gap-2">
-              <Button variant="secondary" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Prev</Button>
-              <span className="px-4 py-2 text-sm text-gray-600">{page} / {pagination.pages}</span>
-              <Button variant="secondary" disabled={page >= pagination.pages} onClick={() => setPage(p => p + 1)}>Next</Button>
+          {pagination?.pages>1 && (
+            <div style={{ display:'flex',justifyContent:'center',alignItems:'center',gap:'12px',marginTop:'20px' }}>
+              <PremiumButton variant="secondary" size="sm" disabled={page===1} onClick={()=>setPage(p=>p-1)}>← Previous</PremiumButton>
+              <span style={{ fontSize:'13px',color:'#64748b',fontWeight:'500' }}>Page {page} of {pagination.pages}</span>
+              <PremiumButton variant="secondary" size="sm" disabled={page>=pagination.pages} onClick={()=>setPage(p=>p+1)}>Next →</PremiumButton>
             </div>
           )}
         </>

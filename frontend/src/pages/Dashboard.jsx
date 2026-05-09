@@ -1,167 +1,172 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery }    from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
-import { Zap, CheckCircle, XCircle, Activity, TrendingUp, Plus } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
+import { Zap, CheckCircle, XCircle, Activity, TrendingUp, Plus, ArrowRight } from 'lucide-react'
 import { dashboardService } from '../services/log.service'
-import { KEYS } from '../config/queryKeys'
+import { KEYS }             from '../config/queryKeys'
 import { formatDuration, timeAgo } from '../utils/formatDate'
-import Loader from '../components/common/Loader'
-import Card   from '../components/ui/Card'
-import Badge  from '../components/ui/Badge'
-import Button from '../components/ui/Button'
+import Loader        from '../components/common/Loader'
+import PageHeader    from '../components/ui/PageHeader'
+import PremiumCard   from '../components/ui/PremiumCard'
+import PremiumButton from '../components/ui/PremiumButton'
+import StatusBadge   from '../components/ui/StatusBadge'
 
-const StatCard = ({ label, value, sub, icon: Icon, color }) => (
-  <Card className="p-5">
-    <div className="flex items-start justify-between">
+const StatCard = ({ label, value, sub, icon:Icon, gradient, light }) => (
+  <PremiumCard style={{ padding:'20px' }}>
+    <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
       <div>
-        <p className="text-sm text-gray-500">{label}</p>
-        <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
-        {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+        <p style={{ fontSize:'13px', color:'#64748b', fontWeight:'500', marginBottom:'8px' }}>{label}</p>
+        <p style={{ fontSize:'30px', fontWeight:'800', color:'#0f172a', letterSpacing:'-1px', lineHeight:1 }}>{value}</p>
+        {sub && <p style={{ fontSize:'12px', color:'#94a3b8', marginTop:'6px' }}>{sub}</p>}
       </div>
-      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${color}`}>
-        <Icon size={20} className="text-white" />
+      <div style={{ width:'44px',height:'44px',borderRadius:'12px',background:gradient,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,boxShadow:`0 4px 12px ${light}` }}>
+        <Icon size={20} color="white" />
       </div>
     </div>
-  </Card>
+  </PremiumCard>
 )
+
+const CustomTooltip = ({ active, payload, label }) => {
+  if (!active||!payload?.length) return null
+  return (
+    <div style={{ background:'white',border:'1px solid #f1f5f9',borderRadius:'10px',padding:'10px 14px',boxShadow:'0 4px 20px rgba(0,0,0,0.1)',fontSize:'13px' }}>
+      <p style={{ fontWeight:'600',color:'#374151',marginBottom:'4px' }}>{label}</p>
+      {payload.map(p => <p key={p.name} style={{ color:p.fill,marginTop:'2px' }}>{p.name}: <strong>{p.value}</strong></p>)}
+    </div>
+  )
+}
 
 export default function Dashboard() {
   const navigate = useNavigate()
-
-  const { data: stats,  isLoading: sl } = useQuery({ queryKey: KEYS.DASHBOARD_STATS,  queryFn: () => dashboardService.getStats().then(r => r.data.data) })
-  const { data: chart,  isLoading: cl } = useQuery({ queryKey: KEYS.DASHBOARD_CHART,  queryFn: () => dashboardService.getChart().then(r => r.data.data.chart) })
-  const { data: recent, isLoading: rl } = useQuery({ queryKey: KEYS.DASHBOARD_RECENT, queryFn: () => dashboardService.getRecent().then(r => r.data.data.activity) })
+  const { data:stats,  isLoading:sl } = useQuery({ queryKey:KEYS.DASHBOARD_STATS,  queryFn:()=>dashboardService.getStats().then(r=>r.data.data) })
+  const { data:chart,  isLoading:cl } = useQuery({ queryKey:KEYS.DASHBOARD_CHART,  queryFn:()=>dashboardService.getChart().then(r=>r.data.data.chart) })
+  const { data:recent, isLoading:rl } = useQuery({ queryKey:KEYS.DASHBOARD_RECENT, queryFn:()=>dashboardService.getRecent().then(r=>r.data.data.activity) })
 
   if (sl) return <Loader text="Loading dashboard..." />
 
   const pieData = [
-    { name: 'Success', value: stats?.successToday || 0, color: '#10b981' },
-    { name: 'Failed',  value: stats?.failedToday  || 0, color: '#ef4444' },
+    { name:'Success', value:stats?.successToday||0, color:'#22c55e' },
+    { name:'Failed',  value:stats?.failedToday||0,  color:'#ef4444' },
   ]
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-500 text-sm mt-1">Welcome back! Here's what's happening.</p>
-        </div>
-        <Button icon={Plus} onClick={() => navigate('/workflows/new')}>New Workflow</Button>
+    <div>
+      <PageHeader
+        title="Dashboard"
+        subtitle="Welcome back! Here's your automation overview."
+        action={<PremiumButton icon={Plus} onClick={()=>navigate('/workflows/new')}>New Workflow</PremiumButton>}
+      />
+
+      {/* Stats Row */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'16px', marginBottom:'24px' }}>
+        <StatCard label="Active Workflows" value={stats?.activeWorkflows||0} sub={`${stats?.totalWorkflows||0} total`}
+          icon={Zap} gradient="linear-gradient(135deg,#3b82f6,#6366f1)" light="#3b82f630" />
+        <StatCard label="Runs Today" value={stats?.runs?.today||0} sub={`${stats?.runs?.week||0} this week`}
+          icon={Activity} gradient="linear-gradient(135deg,#8b5cf6,#a855f7)" light="#8b5cf630" />
+        <StatCard label="Success Rate" value={`${stats?.successRate||0}%`} sub="Today's performance"
+          icon={TrendingUp} gradient="linear-gradient(135deg,#10b981,#059669)" light="#10b98130" />
+        <StatCard label="Failed Today" value={stats?.failedToday||0} sub="Needs attention"
+          icon={XCircle} gradient="linear-gradient(135deg,#ef4444,#dc2626)" light="#ef444430" />
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Active Workflows" value={stats?.activeWorkflows || 0}
-          sub={`${stats?.totalWorkflows || 0} total`} icon={Zap} color="bg-blue-500" />
-        <StatCard label="Runs Today" value={stats?.runs?.today || 0}
-          sub={`${stats?.runs?.week || 0} this week`} icon={Activity} color="bg-purple-500" />
-        <StatCard label="Success Rate" value={`${stats?.successRate || 0}%`}
-          sub="Today" icon={TrendingUp} color="bg-green-500" />
-        <StatCard label="Failed Today" value={stats?.failedToday || 0}
-          sub="Needs attention" icon={XCircle} color="bg-red-500" />
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Bar Chart */}
-        <Card className="p-5 lg:col-span-2">
-          <h3 className="font-semibold text-gray-800 mb-4">Runs — Last 7 Days</h3>
+      {/* Charts Row */}
+      <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:'16px', marginBottom:'24px' }}>
+        <PremiumCard style={{ padding:'24px' }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'20px' }}>
+            <div>
+              <h3 style={{ fontSize:'15px', fontWeight:'700', color:'#0f172a' }}>Workflow Runs</h3>
+              <p style={{ fontSize:'12px', color:'#94a3b8', marginTop:'2px' }}>Last 7 days</p>
+            </div>
+            <div style={{ display:'flex', gap:'12px', fontSize:'12px' }}>
+              <span style={{ display:'flex', alignItems:'center', gap:'5px', color:'#64748b' }}><span style={{ width:'10px',height:'10px',background:'#3b82f6',borderRadius:'3px',display:'inline-block' }}/>Success</span>
+              <span style={{ display:'flex', alignItems:'center', gap:'5px', color:'#64748b' }}><span style={{ width:'10px',height:'10px',background:'#fca5a5',borderRadius:'3px',display:'inline-block' }}/>Failed</span>
+            </div>
+          </div>
           {cl ? <Loader /> : (
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={chart || []}>
-                <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip />
-                <Bar dataKey="success" fill="#10b981" radius={[4,4,0,0]} name="Success" />
-                <Bar dataKey="failed"  fill="#ef4444" radius={[4,4,0,0]} name="Failed" />
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={chart||[]} barSize={20} barGap={4}>
+                <XAxis dataKey="day" tick={{ fontSize:12, fill:'#94a3b8' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize:12, fill:'#94a3b8' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill:'#f8fafc' }} />
+                <Bar dataKey="success" fill="#3b82f6" radius={[5,5,0,0]} name="Success" />
+                <Bar dataKey="failed"  fill="#fca5a5" radius={[5,5,0,0]} name="Failed" />
               </BarChart>
             </ResponsiveContainer>
           )}
-        </Card>
+        </PremiumCard>
 
-        {/* Pie Chart */}
-        <Card className="p-5">
-          <h3 className="font-semibold text-gray-800 mb-4">Today's Summary</h3>
-          <ResponsiveContainer width="100%" height={200}>
+        <PremiumCard style={{ padding:'24px' }}>
+          <h3 style={{ fontSize:'15px', fontWeight:'700', color:'#0f172a', marginBottom:'4px' }}>Today's Summary</h3>
+          <p style={{ fontSize:'12px', color:'#94a3b8', marginBottom:'20px' }}>Success vs Failed</p>
+          <ResponsiveContainer width="100%" height={140}>
             <PieChart>
-              <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value">
-                {pieData.map((e, i) => <Cell key={i} fill={e.color} />)}
+              <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} dataKey="value" paddingAngle={3}>
+                {pieData.map((e,i) => <Cell key={i} fill={e.color} />)}
               </Pie>
-              <Tooltip />
             </PieChart>
           </ResponsiveContainer>
-          <div className="flex justify-center gap-4 mt-2">
+          <div style={{ display:'flex', justifyContent:'center', gap:'16px', marginTop:'8px' }}>
             {pieData.map(e => (
-              <div key={e.name} className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-full" style={{ background: e.color }} />
-                <span className="text-xs text-gray-600">{e.name}: {e.value}</span>
+              <div key={e.name} style={{ display:'flex', alignItems:'center', gap:'6px' }}>
+                <div style={{ width:'8px',height:'8px',borderRadius:'50%',background:e.color }} />
+                <span style={{ fontSize:'12px', color:'#64748b' }}>{e.name}: <strong>{e.value}</strong></span>
               </div>
             ))}
           </div>
-        </Card>
-      </div>
-
-      {/* Recent Activity + Most Active */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="p-5 lg:col-span-2">
-          <h3 className="font-semibold text-gray-800 mb-4">Recent Activity</h3>
-          {rl ? <Loader /> : !recent?.length ? (
-            <p className="text-sm text-gray-400 text-center py-8">No activity yet</p>
-          ) : (
-            <div className="space-y-3">
-              {recent.map(log => (
-                <div key={log._id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0"
-                  onClick={() => navigate(`/logs/${log._id}`)} style={{ cursor: 'pointer' }}>
-                  <div className="flex items-center gap-3">
-                    {log.status === 'success'
-                      ? <CheckCircle size={16} className="text-green-500" />
-                      : <XCircle size={16} className="text-red-500" />}
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">{log.workflowId?.name || 'Unknown'}</p>
-                      <p className="text-xs text-gray-400">{log.triggerType} • {formatDuration(log.duration)}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <Badge variant={log.status === 'success' ? 'success' : 'danger'}>{log.status}</Badge>
-                    <p className="text-xs text-gray-400 mt-1">{timeAgo(log.createdAt)}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        <Card className="p-5">
-          <h3 className="font-semibold text-gray-800 mb-4">Most Active</h3>
-          {stats?.mostActive ? (
-            <div className="space-y-3">
-              <p className="font-medium text-gray-800">{stats.mostActive.name}</p>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Total Runs</span>
-                  <span className="font-medium">{stats.mostActive.stats.totalRuns}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Success</span>
-                  <span className="font-medium text-green-600">{stats.mostActive.stats.successRuns}</span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-2 mt-2">
-                  <div className="bg-green-500 h-2 rounded-full"
-                    style={{ width: `${stats.mostActive.stats.totalRuns > 0 ? (stats.mostActive.stats.successRuns / stats.mostActive.stats.totalRuns) * 100 : 0}%` }} />
-                </div>
+          {stats?.mostActive && (
+            <div style={{ marginTop:'16px', paddingTop:'16px', borderTop:'1px solid #f1f5f9' }}>
+              <p style={{ fontSize:'11px', color:'#94a3b8', marginBottom:'4px' }}>MOST ACTIVE</p>
+              <p style={{ fontSize:'13px', fontWeight:'600', color:'#0f172a' }}>{stats.mostActive.name}</p>
+              <div style={{ display:'flex', gap:'12px', marginTop:'6px' }}>
+                <span style={{ fontSize:'12px', color:'#64748b' }}>Runs: <strong>{stats.mostActive.stats.totalRuns}</strong></span>
+                <span style={{ fontSize:'12px', color:'#16a34a' }}>✓ {stats.mostActive.stats.successRuns}</span>
               </div>
             </div>
-          ) : (
-            <p className="text-sm text-gray-400 text-center py-8">No workflows yet</p>
           )}
-
-          <div className="mt-6 pt-4 border-t border-gray-100">
-            <p className="text-xs text-gray-500 mb-1">Plan</p>
-            <Badge variant="info">Free</Badge>
-          </div>
-        </Card>
+        </PremiumCard>
       </div>
+
+      {/* Recent Activity */}
+      <PremiumCard style={{ padding:'24px' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'20px' }}>
+          <div>
+            <h3 style={{ fontSize:'15px', fontWeight:'700', color:'#0f172a' }}>Recent Activity</h3>
+            <p style={{ fontSize:'12px', color:'#94a3b8', marginTop:'2px' }}>Latest workflow executions</p>
+          </div>
+          <PremiumButton variant="ghost" size="sm" onClick={()=>navigate('/logs')} icon={ArrowRight}>View All</PremiumButton>
+        </div>
+        {rl ? <Loader /> : !recent?.length ? (
+          <div style={{ textAlign:'center', padding:'32px', color:'#94a3b8' }}>
+            <p style={{ fontSize:'14px' }}>No activity yet — trigger a workflow to see logs here</p>
+          </div>
+        ) : (
+          <div>
+            {recent.map((log,i) => (
+              <div key={log._id} onClick={()=>navigate(`/logs/${log._id}`)}
+                style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 0', borderBottom:i<recent.length-1?'1px solid #f8fafc':'none', cursor:'pointer', transition:'all 0.15s' }}
+                onMouseEnter={e=>e.currentTarget.style.paddingLeft='4px'}
+                onMouseLeave={e=>e.currentTarget.style.paddingLeft='0'}
+              >
+                <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
+                  {log.status==='success'
+                    ? <CheckCircle size={18} color="#22c55e" />
+                    : <XCircle    size={18} color="#ef4444" />
+                  }
+                  <div>
+                    <p style={{ fontSize:'14px', fontWeight:'600', color:'#0f172a' }}>{log.workflowId?.name||'Unknown'}</p>
+                    <p style={{ fontSize:'12px', color:'#94a3b8', marginTop:'2px' }}>{log.triggerType} • {formatDuration(log.duration)}</p>
+                  </div>
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
+                  <StatusBadge status={log.status} />
+                  <span style={{ fontSize:'12px', color:'#cbd5e1', minWidth:'60px', textAlign:'right' }}>{timeAgo(log.createdAt)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </PremiumCard>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   )
 }

@@ -141,7 +141,7 @@ export default function Login() {
             >
               {isLoginLoading
                 ? <><span style={{ width: '18px', height: '18px', border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} /> Signing in...</>
-                : <>'Sign In <ArrowRight size={16} /></>
+                : <>Sign In <ArrowRight size={16} /></>
               }
             </button>
           </form>

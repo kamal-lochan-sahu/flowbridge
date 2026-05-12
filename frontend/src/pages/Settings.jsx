@@ -151,7 +151,18 @@ export default function Settings() {
                 <p style={{ fontSize:'12px',color:'#94a3b8',marginTop:'2px' }}>Download all workflows as JSON backup file</p>
               </div>
             </div>
-            <PremiumButton variant="secondary" icon={Download} size="sm" onClick={()=>window.open('/api/settings/export')}>
+            <PremiumButton variant="secondary" icon={Download} size="sm" onClick={async ()=>{
+                try {
+                  const res = await fetch('/api/settings/export', { headers:{ Authorization:`Bearer ${localStorage.getItem('accessToken')}` }})
+                  const blob = await res.blob()
+                  const url  = URL.createObjectURL(blob)
+                  const a    = document.createElement('a')
+                  a.href     = url
+                  a.download = `flowbridge-export-${Date.now()}.json`
+                  a.click()
+                  URL.revokeObjectURL(url)
+                } catch(e) { alert('Export failed') }
+              }}>
               Download Export File
             </PremiumButton>
           </div>

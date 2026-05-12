@@ -1,8 +1,9 @@
+import React from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Link } from 'react-router-dom'
-import { Zap, Mail, Lock, ArrowRight } from 'lucide-react'
+import { Mail, Lock, ArrowRight } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 
 const schema = z.object({
@@ -11,6 +12,7 @@ const schema = z.object({
 })
 
 export default function Login() {
+  const [showPass, setShowPass] = React.useState(false)
   const { login, isLoginLoading } = useAuth()
   const { register, handleSubmit, formState: { errors } } = useForm({ resolver: zodResolver(schema) })
 
@@ -38,19 +40,10 @@ export default function Login() {
       <div style={{ width: '100%', maxWidth: '420px', position: 'relative', zIndex: 1 }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: '56px', height: '56px',
-            background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-            borderRadius: '16px', marginBottom: '16px',
-            boxShadow: '0 0 40px #3b82f640'
-          }}>
-            <Zap size={28} color="white" fill="white" />
-          </div>
-          <h1 style={{ fontSize: '28px', fontWeight: '700', color: 'white', letterSpacing: '-0.5px' }}>
-            FlowBridge
+          <h1 style={{ fontSize: '32px', fontWeight: '800', color: 'white', letterSpacing: '-1px' }}>
+            Flow<span style={{ color: '#3b82f6' }}>Bridge</span>
           </h1>
-          <p style={{ color: '#94a3b8', fontSize: '14px', marginTop: '4px' }}>
+          <p style={{ color: '#64748b', fontSize: '14px', marginTop: '6px' }}>
             Connect anything. Automate everything.
           </p>
         </div>
@@ -107,10 +100,10 @@ export default function Login() {
               <div style={{ position: 'relative' }}>
                 <Lock size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
                 <input
-                  type="password" placeholder="••••••••"
+                  type={showPass ? 'text' : 'password'} placeholder="••••••••"
                   {...register('password')}
                   style={{
-                    width: '100%', padding: '12px 14px 12px 40px',
+                    width: '100%', padding: '12px 40px 12px 40px',
                     background: 'rgba(255,255,255,0.07)',
                     border: `1px solid ${errors.password ? '#ef4444' : 'rgba(255,255,255,0.1)'}`,
                     borderRadius: '12px', color: 'white', fontSize: '14px',
@@ -119,6 +112,13 @@ export default function Login() {
                   onFocus={e => e.target.style.borderColor = '#3b82f6'}
                   onBlur={e => e.target.style.borderColor = errors.password ? '#ef4444' : 'rgba(255,255,255,0.1)'}
                 />
+                <button type="button" onClick={() => setShowPass(p => !p)}
+                  style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', padding: '2px' }}>
+                  {showPass
+                    ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  }
+                </button>
               </div>
               {errors.password && <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '6px' }}>{errors.password.message}</p>}
             </div>

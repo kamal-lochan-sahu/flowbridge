@@ -25,9 +25,7 @@ const SERVICES = Object.keys(SERVICE_META)
 export default function Credentials() {
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ name:'', service:'twilio', authType:'api_key', credentials:'{
-  
-}' })
+  const [form, setForm] = useState({ name:'', service:'twilio', authType:'api_key', credentials:'{}' })
 
   const { data, isLoading } = useQuery({
     queryKey: KEYS.CREDENTIALS,
@@ -36,9 +34,7 @@ export default function Credentials() {
 
   const createMut = useMutation({
     mutationFn: ()=>credentialService.create({ ...form, credentials:JSON.parse(form.credentials) }),
-    onSuccess:  ()=>{ queryClient.invalidateQueries({queryKey:KEYS.CREDENTIALS}); toast.success('Credential added'); setShowForm(false); setForm({name:'',service:'twilio',authType:'api_key',credentials:'{
-  
-}'}) },
+    onSuccess:  ()=>{ queryClient.invalidateQueries({queryKey:KEYS.CREDENTIALS}); toast.success('Credential added'); setShowForm(false); setForm({name:'',service:'twilio',authType:'api_key',credentials:'{}'}) },
     onError:    (e)=>toast.error(e.response?.data?.message||'Invalid JSON'),
   })
   const deleteMut = useMutation({
@@ -102,10 +98,7 @@ export default function Credentials() {
                 <textarea value={form.credentials} onChange={e=>setForm(p=>({...p,credentials:e.target.value}))} rows={5}
                   style={{ width:'100%',padding:'10px 14px',border:'1px solid #e2e8f0',borderRadius:'10px',fontSize:'13px',fontFamily:'monospace',outline:'none',resize:'vertical',boxSizing:'border-box' }}
                   onFocus={e=>e.target.style.borderColor='#3b82f6'} onBlur={e=>e.target.style.borderColor='#e2e8f0'}
-                  placeholder={'{
-  "account_sid": "ACxxx",
-  "auth_token": "xxx"
-}'}
+                  placeholder='{"account_sid":"ACxxx","auth_token":"xxx"}'
                 />
               </div>
 

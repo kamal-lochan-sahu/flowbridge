@@ -21,7 +21,7 @@ export default function Login() {
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '24px', position: 'relative', overflow: 'hidden'
+      padding: '20px', position: 'relative', overflow: 'hidden', minHeight: '100dvh'
     }}>
       {/* Background glow effects */}
       <div style={{

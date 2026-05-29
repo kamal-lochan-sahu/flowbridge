@@ -58,7 +58,7 @@ export default function Dashboard() {
       />
 
       {/* Stats Row */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'16px', marginBottom:'24px' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:'16px', marginBottom:'24px' }}>
         <StatCard label="Active Workflows" value={stats?.activeWorkflows||0} sub={`${stats?.totalWorkflows||0} total`}
           icon={Zap} gradient="linear-gradient(135deg,#3b82f6,#6366f1)" light="#3b82f630" />
         <StatCard label="Runs Today" value={stats?.runs?.today||0} sub={`${stats?.runs?.week||0} this week`}
@@ -70,7 +70,7 @@ export default function Dashboard() {
       </div>
 
       {/* Charts Row */}
-      <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:'16px', marginBottom:'24px' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'minmax(0,2fr) minmax(280px,1fr)', gap:'16px', marginBottom:'24px' }}>
         <PremiumCard style={{ padding:'24px' }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'20px' }}>
             <div>

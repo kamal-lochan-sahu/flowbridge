@@ -1,0 +1,5 @@
+[   13308ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://flowbridge-delta.vercel.app/favicon.ico:0
+[   13310ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://flowbridge-delta.vercel.app/favicon.ico:0
+[   14581ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ https://flowbridge-delta.vercel.app/login:0
+[   16568ms] [LOG] SW registered @ https://flowbridge-delta.vercel.app/:33
+[   64138ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://flowbridge-delta.vercel.app/api/auth/login:0

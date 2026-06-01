@@ -1,0 +1,5 @@
+# Playwright artifacts
+.playwright-mcp/
+*.png
+!frontend/public/*.png
+!frontend/src/**/*.png

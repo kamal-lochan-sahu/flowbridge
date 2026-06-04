@@ -78,7 +78,8 @@ export default function Sidebar() {
       {/* Nav */}
       <nav style={{ flex: 1, padding: '12px 8px', overflowY: 'auto' }}>
         {NAV.map(({ to, icon: Icon, label }) => (
-          <NavLink key={to} to={to} end={to === '/'} style={({ isActive }) => ({
+          <NavLink key={to} to={to} end={to === '/'} title={!sidebarOpen ? label : undefined}
+          style={({ isActive }) => ({
             display: 'flex', alignItems: 'center',
             gap: '10px', padding: '10px 12px',
             borderRadius: '10px', marginBottom: '2px',

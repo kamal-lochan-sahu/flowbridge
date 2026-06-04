@@ -48,7 +48,7 @@ export default function Settings() {
 
   const profileMut  = useMutation({ mutationFn:()=>api.put('/settings/profile',     profile),  onSuccess:()=>toast.success('Profile updated') })
   const brandingMut = useMutation({ mutationFn:()=>api.put('/settings/branding',    branding), onSuccess:()=>toast.success('Branding saved') })
-  const notifMut    = useMutation({ mutationFn:()=>api.put('/settings/notifications',notif),    onSuccess:()=>toast.success('Preferences saved') })
+  const notifMut    = useMutation({ mutationFn:()=>api.put('/settings/notifications',notif),    onSuccess:()=>{toast.success('Notification preferences saved!')} })
 
   const Toggle = ({ checked, onChange, label, hint }) => (
     <div style={{ display:'flex',alignItems:'flex-start',justifyContent:'space-between',padding:'16px',background:'#f8fafc',borderRadius:'12px',marginBottom:'10px' }}>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Save, Play, ArrowLeft, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -31,8 +31,8 @@ export default function WorkflowBuilder() {
   const queryClient  = useQueryClient()
   const isEdit       = !!id
 
-  const [name, setName]             = useState('')
-  const [description, setDesc]      = useState('')
+  const [name, setName]             = useState(location.state?.templateName || '')
+  const [description, setDesc]      = useState(location.state?.templateDesc || '')
   const [triggerType, setTrigger]   = useState('webhook')
   const [actions, setActions]       = useState([])
   const [cronExpr, setCron]         = useState('0 9 * * *')
@@ -190,8 +190,8 @@ export default function WorkflowBuilder() {
               <textarea
                 value={JSON.stringify(action.config, null, 2)}
                 onChange={e => { try { updateAction(i, 'config', JSON.parse(e.target.value)) } catch {} }}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows={6}
+                style={{ width:'100%',padding:'10px 12px',border:'1px solid #e2e8f0',borderRadius:'10px',fontSize:'12px',fontFamily:'monospace',outline:'none',resize:'vertical',boxSizing:'border-box',minHeight:'100px' }}
               />
             </div>
           </div>

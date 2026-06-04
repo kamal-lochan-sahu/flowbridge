@@ -18,6 +18,7 @@ import LogDetail     from './pages/LogDetail'
 import Templates     from './pages/Templates'
 import Integrations  from './pages/Integrations'
 import Notifications from './pages/Notifications'
+import NotFound      from './pages/NotFound'
 import Settings      from './pages/Settings'
 
 const PrivateRoute = ({ children }) => {
@@ -51,6 +52,7 @@ export default function App() {
           <Route path="integrations"      element={<Integrations />} />
           <Route path="notifications"     element={<Notifications />} />
           <Route path="settings"          element={<Settings />} />
+          <Route path="*"                 element={<NotFound />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

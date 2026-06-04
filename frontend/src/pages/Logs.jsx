@@ -68,6 +68,27 @@ export default function Logs() {
         <>
           <PremiumCard>
             <div style={{ padding:'0 4px' }}>
+              {/* Mobile card view */}
+              <div className="show-mobile-only">
+                {logs.map((log,i)=>(
+                  <div key={log._id} onClick={()=>navigate(`/logs/${log._id}`)}
+                    style={{ padding:'14px 16px', borderBottom:i<logs.length-1?'1px solid #f8fafc':'none', cursor:'pointer' }}>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'6px' }}>
+                      <span style={{ fontSize:'14px', fontWeight:'600', color:'#0f172a', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginRight:'8px' }}>
+                        {log.workflowId?.name||'Unknown'}
+                      </span>
+                      <StatusBadge status={log.status} />
+                    </div>
+                    <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
+                      <span style={{ fontSize:'12px', color:'#94a3b8', textTransform:'capitalize' }}>{log.triggerType}</span>
+                      <span style={{ fontSize:'12px', color:'#94a3b8' }}>{formatDuration(log.duration)}</span>
+                      <span style={{ fontSize:'12px', color:'#94a3b8', marginLeft:'auto' }}>{formatDate(log.createdAt)?.split(',')[1]?.trim()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Desktop table view */}
+              <div className="hide-mobile">
               {/* Header */}
               <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 120px 100px 80px', gap:'16px', padding:'12px 20px', borderBottom:'1px solid #f8fafc' }}>
                 {['Workflow','Trigger','Status','Duration','Time'].map(h=>(
@@ -103,6 +124,7 @@ export default function Logs() {
                   </div>
                 </div>
               ))}
+              </div>
             </div>
           </PremiumCard>
 

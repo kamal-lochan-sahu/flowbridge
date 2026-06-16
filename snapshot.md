@@ -1,0 +1,65 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - banner [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]: My QA Company
+        - generic [ref=e8]: free
+      - button [ref=e10] [cursor=pointer]:
+        - img [ref=e11]
+    - main [ref=e14]:
+      - generic [ref=e48]:
+        - generic [ref=e49]:
+          - button [ref=e50]:
+            - img [ref=e51]
+          - generic [ref=e53]:
+            - heading "Edit Workflow" [level=1] [ref=e54]
+            - paragraph [ref=e55]: Build your automation flow
+        - generic [ref=e56]:
+          - heading "📝 Workflow Info" [level=2] [ref=e57]
+          - generic [ref=e58]:
+            - generic [ref=e59]: Name
+            - textbox "My Workflow" [ref=e60]
+          - generic [ref=e61]:
+            - generic [ref=e62]: Description
+            - textbox "What does this workflow do?" [ref=e63]
+        - generic [ref=e64]:
+          - heading "⚡ Trigger — When to start" [level=2] [ref=e65]
+          - generic [ref=e66]:
+            - button "🔗 Webhook" [ref=e67]
+            - button "⏰ Schedule" [ref=e68]
+            - button "▶️ Manual" [ref=e69]
+            - button "📝 Form" [ref=e70]
+          - generic [ref=e71]:
+            - paragraph [ref=e72]: Webhook URL (generated after save)
+            - code [ref=e73]: "POST /api/webhooks/receive/{id}"
+        - generic [ref=e74]:
+          - generic [ref=e75]:
+            - heading "🔧 Actions — What to do" [level=2] [ref=e76]
+            - button "Add Action" [ref=e77]:
+              - img [ref=e78]
+              - text: Add Action
+          - paragraph [ref=e80]: No actions yet — click "Add Action"
+        - button "Save Workflow" [ref=e82]:
+          - img [ref=e83]
+          - text: Save Workflow
+  - navigation [ref=e18]:
+    - link "Home" [ref=e19] [cursor=pointer]:
+      - /url: /
+      - img [ref=e20]
+      - generic [ref=e25]: Home
+    - link "Workflows" [ref=e26] [cursor=pointer]:
+      - /url: /workflows
+      - img [ref=e27]
+      - generic [ref=e31]: Workflows
+    - link "Logs" [ref=e32] [cursor=pointer]:
+      - /url: /logs
+      - img [ref=e33]
+      - generic [ref=e36]: Logs
+    - link "Keys" [ref=e37] [cursor=pointer]:
+      - /url: /credentials
+      - img [ref=e38]
+      - generic [ref=e42]: Keys
+    - link "Settings" [ref=e43] [cursor=pointer]:
+      - /url: /settings
+      - img [ref=e44]
+      - generic [ref=e47]: Settings

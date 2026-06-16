@@ -28,6 +28,7 @@ const ACTION_TYPES = {
 export default function WorkflowBuilder() {
   const { id }       = useParams()
   const navigate     = useNavigate()
+  const location     = useLocation()
   const queryClient  = useQueryClient()
   const isEdit       = !!id
 
@@ -43,7 +44,16 @@ export default function WorkflowBuilder() {
     queryKey: KEYS.WORKFLOW(id),
     queryFn:  () => workflowService.getOne(id).then(r => r.data.data.workflow),
     enabled:  isEdit,
+    retry: false,
+    throwOnError: false,
+    meta: { onError: (err) => { navigate('/not-found') } },
   })
+
+  useEffect(() => {
+    if (isEdit && !isLoading && !wfData) {
+      navigate('/not-found')
+    }
+  }, [isEdit, isLoading, wfData])
 
   useEffect(() => {
     if (wfData) {

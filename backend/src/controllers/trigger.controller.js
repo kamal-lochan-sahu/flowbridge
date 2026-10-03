@@ -1,4 +1,5 @@
 const { v4: uuidv4 } = require("uuid");
+const crypto = require("crypto");
 const Trigger    = require("../models/Trigger");
 const Workflow   = require("../models/Workflow");
 const ApiError   = require("../utils/ApiError");
@@ -23,7 +24,7 @@ const createTrigger = asyncHandler(async (req, res) => {
     const webhookId = uuidv4();
     triggerData.webhook = {
       url:     `${WEBHOOK_BASE}/api/webhooks/receive/${webhookId}`,
-      secret:  webhook?.secret || uuidv4().replace(/-/g,"").slice(0,16),
+      secret:  webhook?.secret || crypto.randomBytes(24).toString("hex"),
       method:  webhook?.method || "POST",
       service: webhook?.service || "",
       event:   webhook?.event || "",
@@ -72,7 +73,12 @@ const updateTrigger = asyncHandler(async (req, res) => {
 
   const { webhook, schedule, form } = req.body;
 
-  if (webhook  && trigger.type === "webhook")  Object.assign(trigger.webhook,  webhook);
+  if (webhook  && trigger.type === "webhook") {
+    // whitelist — never let the client overwrite webhook.url (would hijack another trigger's URL)
+    for (const k of ["secret", "method", "service", "event"]) {
+      if (webhook[k] !== undefined) trigger.webhook[k] = webhook[k];
+    }
+  }
   if (schedule && trigger.type === "schedule") Object.assign(trigger.schedule, schedule);
   if (form     && trigger.type === "form")     Object.assign(trigger.form,     form);
 

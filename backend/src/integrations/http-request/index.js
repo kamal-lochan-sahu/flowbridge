@@ -1,4 +1,9 @@
 const axios = require("axios");
+const { assertPublicUrl, httpAgent, httpsAgent } = require("../../utils/netGuard");
+
+const ALLOWED_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"];
+const MAX_BYTES   = 5 * 1024 * 1024;
+const MAX_TIMEOUT = 60000;
 
 const execute = async (actionType, config, credentials) => {
   switch (actionType) {
@@ -17,6 +22,12 @@ const makeRequest = async (config, credentials) => {
 
   if (!url) throw new Error("HTTP Request: 'url' is required");
 
+  const upperMethod = String(method).toUpperCase();
+  if (!ALLOWED_METHODS.includes(upperMethod)) throw new Error(`HTTP Request: method '${method}' not allowed`);
+
+  // SSRF: literal-IP / scheme / userinfo check here; hostnames are checked at DNS time by the agents
+  assertPublicUrl(url);
+
   // Build auth headers
   const authHeaders = {};
   if (authType === "bearer" && credentials?.api_key) {
@@ -29,19 +40,27 @@ const makeRequest = async (config, credentials) => {
   }
 
   const requestConfig = {
-    url, method,
+    url, method: upperMethod,
     headers: { "Content-Type": "application/json", ...headers, ...authHeaders },
-    timeout,
+    timeout: Math.min(Number(timeout) || 30000, MAX_TIMEOUT),
     validateStatus: null, // Don't throw on non-2xx
+    proxy: false,         // ignore HTTP(S)_PROXY env — would bypass the guard
+    httpAgent, httpsAgent,
+    maxRedirects: 3,
+    beforeRedirect: (options) => {
+      assertPublicUrl(options.href || `${options.protocol}//${options.hostname}${options.path || ""}`);
+    },
+    maxContentLength: MAX_BYTES,
+    maxBodyLength:    MAX_BYTES,
   };
 
-  if (["POST","PUT","PATCH"].includes(method.toUpperCase())) {
+  if (["POST", "PUT", "PATCH"].includes(upperMethod)) {
     requestConfig.data = body;
   }
 
   const response = await axios(requestConfig);
 
-  console.log(`✅ HTTP ${method} ${url} — Status: ${response.status}`);
+  console.log(`✅ HTTP ${upperMethod} ${new URL(url).host} — Status: ${response.status}`);
 
   if (response.status >= 400) {
     throw new Error(`HTTP ${response.status}: ${JSON.stringify(response.data).slice(0,200)}`);
@@ -53,7 +72,7 @@ const makeRequest = async (config, credentials) => {
     statusText: response.statusText,
     data:       response.data,
     headers:    response.headers,
-    message:    `HTTP ${method} successful`,
+    message:    `HTTP ${upperMethod} successful`,
   };
 };
 

@@ -7,12 +7,24 @@ const { errorMiddleware, notFoundMiddleware } = require("./src/middleware/error.
 
 const app = express();
 
+// Behind a reverse proxy (Render) req.ip must be the real client, or every user shares one rate-limit bucket.
+// TRUST_PROXY = number of proxy hops (Render = 1) or a subnet list. Never "true" — that lets clients spoof their IP.
+const tp = process.env.TRUST_PROXY;
+if (tp === "true" || tp === "*") {
+  console.warn("⚠️  TRUST_PROXY=true is unsafe (IP spoofing) — using 1 hop instead");
+  app.set("trust proxy", 1);
+} else if (tp) {
+  app.set("trust proxy", /^\d+$/.test(tp) ? parseInt(tp, 10) : tp);
+} else if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
 app.use(helmet());
 app.use(cors({
   origin: process.env.CLIENT_URL || "http://localhost:3000",
   credentials: true,
   methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
-  allowedHeaders: ["Content-Type","Authorization","x-webhook-signature"],
+  allowedHeaders: ["Content-Type","Authorization"],
 }));
 
 app.use("/api/webhooks/receive", express.raw({ type: "*/*", limit: "10mb" }));

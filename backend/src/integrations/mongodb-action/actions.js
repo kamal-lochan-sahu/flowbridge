@@ -1,34 +1,93 @@
 const mongoose = require("mongoose");
+const dns      = require("dns");
+const { assertPublicHost } = require("../../utils/netGuard");
 
 const execute = async (actionType, config, credentials) => {
   switch (actionType) {
-    case "insert_document": return await insertDocument(config, credentials);
-    case "update_document": return await updateDocument(config, credentials);
-    case "find_document":   return await findDocument(config, credentials);
+    case "insert_document": return await withConnection(credentials, (conn) => insertDocument(conn, config));
+    case "update_document": return await withConnection(credentials, (conn) => updateDocument(conn, config));
+    case "find_document":   return await withConnection(credentials, (conn) => findDocument(conn, config));
     default: throw new Error(`Unknown MongoDB action: ${actionType}`);
   }
 };
 
-const getConnection = async (credentials) => {
-  // Use provided URI or fall back to app's MongoDB
-  const uri = credentials?.uri || process.env.MONGODB_URI;
-  if (!uri) throw new Error("MongoDB: connection URI required");
-
-  // Use mongoose default connection if same DB
-  if (uri === process.env.MONGODB_URI) return mongoose.connection;
-
-  // Separate connection for external DB
-  const conn = await mongoose.createConnection(uri).asPromise();
-  return conn;
+// ── URI parsing + validation ──────────────────────────────────
+const parseMongoUri = (uri) => {
+  const m = /^(mongodb(?:\+srv)?):\/\/(.+)$/i.exec(String(uri || "").trim());
+  if (!m) throw new Error("MongoDB: URI must start with mongodb:// or mongodb+srv://");
+  const srv  = m[1].toLowerCase() === "mongodb+srv";
+  const rest = m[2];
+  const authority = rest.split(/[/?]/)[0];
+  const hostPart  = authority.slice(authority.lastIndexOf("@") + 1);
+  const hosts = hostPart.split(",").filter(Boolean).map((h) => {
+    if (h.startsWith("[")) return h.slice(1, h.indexOf("]"));          // [ipv6]:port
+    return h.replace(/:\d+$/, "");
+  });
+  const dbMatch = /^[^/?]*\/([^?]*)/.exec(rest);
+  return { srv, hosts, db: dbMatch ? dbMatch[1] : "" };
 };
 
-const insertDocument = async (config, credentials) => {
-  const { collection, document = {} } = config;
-  if (!collection) throw new Error("MongoDB: 'collection' is required");
+const assertSafeMongoUri = async (uri) => {
+  const { srv, hosts } = parseMongoUri(uri);
+  if (hosts.length === 0 || hosts.length > 10) throw new Error("MongoDB: invalid host list in URI");
+  if (hosts.some((h) => h.includes("%") || h.includes("/"))) throw new Error("MongoDB: unix sockets are not allowed");
 
-  const conn = await getConnection(credentials);
-  const col  = conn.collection(collection);
-  const result = await col.insertOne({ ...document, createdAt: new Date() });
+  let targets = hosts;
+  if (srv) {
+    // mongodb+srv: the real hosts live in the SRV record
+    targets = [];
+    for (const h of hosts) {
+      const recs = await dns.promises.resolveSrv(`_mongodb._tcp.${h}`);
+      targets.push(...recs.map((r) => r.name));
+    }
+  }
+  for (const t of targets) await assertPublicHost(t);
+};
+
+const sameAsAppDb = (uri) => {
+  if (!process.env.MONGODB_URI) return false;
+  try {
+    const a = parseMongoUri(uri), b = parseMongoUri(process.env.MONGODB_URI);
+    return a.db === b.db && a.hosts.slice().sort().join() === b.hosts.slice().sort().join();
+  } catch { return false; }
+};
+
+// Always a *separate* connection built from the user's own credential — never the app's DB.
+const withConnection = async (credentials, fn) => {
+  const uri = credentials?.uri;
+  if (!uri) {
+    throw new Error("MongoDB: attach a MongoDB credential that contains your own connection 'uri'");
+  }
+  if (sameAsAppDb(uri)) throw new Error("MongoDB: this database is not available to workflows");
+  await assertSafeMongoUri(uri);
+
+  const conn = await mongoose.createConnection(uri, {
+    serverSelectionTimeoutMS: 8000,
+    socketTimeoutMS:          30000,
+    maxPoolSize:              2,
+  }).asPromise();
+  try {
+    return await fn(conn);
+  } finally {
+    conn.close().catch(() => {});
+  }
+};
+
+const checkCollection = (collection) => {
+  if (!collection || typeof collection !== "string") throw new Error("MongoDB: 'collection' is required");
+  if (collection.length > 120 || /[$\0]/.test(collection) || collection.startsWith("system.")) {
+    throw new Error("MongoDB: invalid collection name");
+  }
+};
+
+const insertDocument = async (conn, config) => {
+  const { collection, document = {} } = config;
+  checkCollection(collection);
+  if (typeof document !== "object" || document === null || Array.isArray(document)) {
+    throw new Error("MongoDB: 'document' must be an object");
+  }
+
+  const result = await conn.collection(collection).insertOne({ ...document, createdAt: new Date() });
 
   console.log(`✅ MongoDB inserted — ID: ${result.insertedId}`);
   return {
@@ -39,13 +98,13 @@ const insertDocument = async (config, credentials) => {
   };
 };
 
-const updateDocument = async (config, credentials) => {
+const updateDocument = async (conn, config) => {
   const { collection, filter = {}, update = {}, upsert = false } = config;
-  if (!collection) throw new Error("MongoDB: 'collection' is required");
+  checkCollection(collection);
 
-  const conn   = await getConnection(credentials);
-  const col    = conn.collection(collection);
-  const result = await col.updateOne(filter, { $set: { ...update, updatedAt: new Date() } }, { upsert });
+  const result = await conn.collection(collection).updateOne(
+    filter, { $set: { ...update, updatedAt: new Date() } }, { upsert: upsert === true || upsert === "true" }
+  );
 
   console.log(`✅ MongoDB updated — matched: ${result.matchedCount}`);
   return {
@@ -57,13 +116,12 @@ const updateDocument = async (config, credentials) => {
   };
 };
 
-const findDocument = async (config, credentials) => {
+const findDocument = async (conn, config) => {
   const { collection, filter = {}, limit = 10 } = config;
-  if (!collection) throw new Error("MongoDB: 'collection' is required");
+  checkCollection(collection);
 
-  const conn = await getConnection(credentials);
-  const col  = conn.collection(collection);
-  const docs = await col.find(filter).limit(parseInt(limit)).toArray();
+  const n    = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 100);
+  const docs = await conn.collection(collection).find(filter).limit(n).toArray();
 
   console.log(`✅ MongoDB found — ${docs.length} documents`);
   return {
@@ -75,4 +133,4 @@ const findDocument = async (config, credentials) => {
   };
 };
 
-module.exports = { execute };
+module.exports = { execute, parseMongoUri, assertSafeMongoUri };

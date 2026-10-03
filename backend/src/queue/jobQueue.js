@@ -2,6 +2,15 @@ const Bull = require("bull");
 
 let workflowQueue = null;
 
+// Verify the Redis server certificate. Opt-out only for a self-signed cert: REDIS_TLS_REJECT_UNAUTHORIZED=false
+const redisTlsOptions = (hostname) => {
+  if (process.env.REDIS_TLS_REJECT_UNAUTHORIZED === "false") {
+    console.warn("⚠️  Redis TLS certificate verification is DISABLED (REDIS_TLS_REJECT_UNAUTHORIZED=false)");
+    return { rejectUnauthorized: false };
+  }
+  return { servername: hostname };
+};
+
 const getQueue = () => {
   if (workflowQueue) return workflowQueue;
 
@@ -14,7 +23,7 @@ const getQueue = () => {
     host:     url.hostname,
     port:     parseInt(url.port) || 6379,
     password: url.password,
-    tls:      redisUrl.startsWith("rediss://") ? { rejectUnauthorized: false } : undefined,
+    tls:      redisUrl.startsWith("rediss://") ? redisTlsOptions(url.hostname) : undefined,
     maxRetriesPerRequest: 3,
     enableReadyCheck:     false,
     retryStrategy: (times) => {

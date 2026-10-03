@@ -4,6 +4,8 @@ const ApiResponse = require("../utils/ApiResponse");
 const asyncHandler  = require("../utils/asyncHandler");
 const { encryptCredentials, decryptCredentials } = require("../config/encryption");
 const { getAuthUrl, getTokensFromCode } = require("../config/google");
+const { createOAuthState, consumeOAuthState } = require("../utils/oauthState");
+const User = require("../models/User");
 
 // Service test functions
 const testServiceConnection = async (service, authType, credentials) => {
@@ -38,6 +40,10 @@ const testServiceConnection = async (service, authType, credentials) => {
     }
 
     if (service === "shopify") {
+      // Only real Shopify admin hosts — prevents sending the token to an attacker-chosen host (SSRF)
+      if (!/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/i.test(String(credentials.shop_domain || ""))) {
+        throw new Error("Invalid Shopify domain (expected your-shop.myshopify.com)");
+      }
       const axios = require("axios");
       const res   = await axios.get(
         `https://${credentials.shop_domain}/admin/api/2024-01/shop.json`,
@@ -129,10 +135,10 @@ const testCredential = asyncHandler(async (req, res) => {
 
 // ── GOOGLE OAUTH START ────────────────────────────────────────
 const googleOAuthStart = asyncHandler(async (req, res) => {
-  const { service = "full" } = req.query;
+  const service = ["gmail", "google-sheets"].includes(req.query.service) ? req.query.service : "gmail";
 
-  // Store userId in state for callback
-  const state   = Buffer.from(JSON.stringify({ userId: req.user._id.toString(), service })).toString("base64");
+  // Signed + expiring + single-use state bound to the logged-in user
+  const state   = await createOAuthState(req.user._id.toString(), service);
   const authUrl = getAuthUrl("full", state);
 
   return ApiResponse.success(res, { authUrl }, "Google OAuth URL generated");
@@ -140,17 +146,18 @@ const googleOAuthStart = asyncHandler(async (req, res) => {
 
 // ── GOOGLE OAUTH CALLBACK ─────────────────────────────────────
 const googleOAuthCallback = asyncHandler(async (req, res) => {
-  const { code, state } = req.query;
+  const { code, state, error } = req.query;
+  if (error) return res.redirect(`${process.env.CLIENT_URL}/credentials?error=google_denied`);
   if (!code) throw ApiError.badRequest("Authorization code missing");
 
   let userId, service;
   try {
-    const decoded = JSON.parse(Buffer.from(state, "base64").toString());
-    userId  = decoded.userId;
-    service = decoded.service || "gmail";
+    ({ userId, service } = await consumeOAuthState(state));
   } catch {
-    throw ApiError.badRequest("Invalid state parameter");
+    throw ApiError.badRequest("Invalid or expired state parameter");
   }
+  const owner = await User.findOne({ _id: userId, isActive: true }).select("_id");
+  if (!owner) throw ApiError.badRequest("Invalid state parameter");
 
   const tokens = await getTokensFromCode(code);
 
